@@ -1,5 +1,4 @@
-
-name: Build Android APK
+name: Build JARVIS 2.0 APK
 
 on:
   workflow_dispatch:
@@ -17,23 +16,28 @@ jobs:
           channel: stable
 
       - name: Generate Android project
-        run: flutter create . --platforms=android
+        run: flutter create . --platforms=android --org com.jarvisai --project-name jarvis_2_0
 
-      - name: Configure Android network access
+      - name: Configure Android permissions and network access
         run: |
           python3 - <<'PY'
           from pathlib import Path
 
-          p = Path("android/app/src/main/AndroidManifest.xml")
+          p = Path('android/app/src/main/AndroidManifest.xml')
           s = p.read_text()
 
-          permission = 'android.permission.INTERNET'
-          if permission not in s:
-              s = s.replace(
-                  '<application',
-                  '    <uses-permission android:name="android.permission.INTERNET" />\n    <application',
-                  1
-              )
+          permissions = [
+              'android.permission.INTERNET',
+              'android.permission.RECORD_AUDIO',
+              'android.permission.POST_NOTIFICATIONS',
+              'android.permission.FOREGROUND_SERVICE',
+              'android.permission.FOREGROUND_SERVICE_MICROPHONE',
+          ]
+
+          for permission in permissions:
+              tag = f'<uses-permission android:name="{permission}" />'
+              if permission not in s:
+                  s = s.replace('<application', f'    {tag}\n    <application', 1)
 
           if 'android:usesCleartextTraffic' not in s:
               s = s.replace(
@@ -54,6 +58,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: jarvis-release-apk
+          name: jarvis-2-0-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
-
