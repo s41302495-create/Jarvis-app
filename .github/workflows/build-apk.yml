@@ -1,3 +1,4 @@
+
 name: Build Android APK
 
 on:
@@ -10,17 +11,49 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+
       - name: Generate Android project
         run: flutter create . --platforms=android
+
+      - name: Configure Android network access
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("android/app/src/main/AndroidManifest.xml")
+          s = p.read_text()
+
+          permission = 'android.permission.INTERNET'
+          if permission not in s:
+              s = s.replace(
+                  '<application',
+                  '    <uses-permission android:name="android.permission.INTERNET" />\n    <application',
+                  1
+              )
+
+          if 'android:usesCleartextTraffic' not in s:
+              s = s.replace(
+                  '<application',
+                  '<application android:usesCleartextTraffic="true"',
+                  1
+              )
+
+          p.write_text(s)
+          PY
+
       - name: Install dependencies
         run: flutter pub get
+
       - name: Build release APK
         run: flutter build apk --release
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: jarvis-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+
